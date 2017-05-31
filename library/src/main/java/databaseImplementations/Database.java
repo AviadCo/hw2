@@ -101,10 +101,19 @@ public class Database<Key extends Comparable<Key>, Value> implements IDatabase<K
 	 * @param - list of elements to add at once.
 	 */
 	@Override
-	public void add(List<? extends IDatabaseElement<Key, Value>> elements) {
-		elements.stream()
-		.sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
-				.forEach(e -> addElement(e));
+	public CompletableFuture<Void> add(CompletableFuture<List<? extends IDatabaseElement<Key, Value>>> elements) {
+		
+		return elements.thenCompose(new Function<List<? extends IDatabaseElement<Key, Value>>, CompletionStage<Void>>() {
+
+			@Override
+			public CompletionStage<Void> apply(List<? extends IDatabaseElement<Key, Value>> elementsList) {
+				elementsList.stream()
+				.sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
+						.forEach(e -> addElement(e));
+				
+				return CompletableFuture.completedFuture(null);
+			}
+		});
 	}
 	
 	private CompletableFuture<Integer> findElementByIDRec(Key keyToFind, CompletableFuture<Integer> lowLine,

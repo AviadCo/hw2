@@ -24,7 +24,7 @@ public interface IDatabase<Key extends Comparable<Key>, Value> {
 	 * 
 	 * @param elements - list of elements to add
 	 */
-	void add(List<? extends IDatabaseElement<Key, Value>> elements);
+	CompletableFuture<Void> add(CompletableFuture<List<? extends IDatabaseElement<Key, Value>>> elements);
 
 	/**
 	 * findStudentByID - returns element by it's key using binary search algorithm.

@@ -19,6 +19,11 @@ public class Product implements IDatabaseElement<String, Product> {
 		this.price = price;
 	}
 	
+	public Product (String id, String price) {
+		this.id = id;
+		this.price = Integer.valueOf(price);
+	}
+	
 	public String getId() {
 		return id;
 	}

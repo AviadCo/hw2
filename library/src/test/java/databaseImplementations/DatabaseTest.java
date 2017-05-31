@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import org.junit.BeforeClass;
@@ -48,7 +49,7 @@ public class DatabaseTest {
 		
 		elementsList.addAll(elementsMap.values());
 		
-		database.add(elementsList);
+		database.add(CompletableFuture.completedFuture(elementsList));
 	}
 	
 	@Test (timeout = 500)

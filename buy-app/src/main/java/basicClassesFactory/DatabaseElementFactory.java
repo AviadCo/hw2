@@ -46,5 +46,4 @@ public class DatabaseElementFactory implements IStringableFactory<DatabaseElemen
 			return elementString;
 		});
 	}
-	
 }
