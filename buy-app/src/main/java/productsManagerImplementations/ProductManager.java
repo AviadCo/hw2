@@ -20,7 +20,6 @@ import basicClasses.DatabaseElement;
 import basicClasses.Order;
 import basicClasses.Product;
 import databaseImplementations.Database;
-import databaseInterfaces.IDatabaseElement;
 import il.ac.technion.cs.sd.buy.app.BuyProductInitializer;
 import il.ac.technion.cs.sd.buy.app.BuyProductReader;
 
@@ -237,67 +236,281 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 
 	@Override
 	public CompletableFuture<List<Integer>> getHistoryOfOrder(String orderId) {
-		// TODO Auto-generated method stub
-		return null;
+		return ordersByOrdersIDDatabase.findElementByID(orderId).thenApply(order -> {
+			/* we want only one operation from each product */
+			//TODO do we really want only one from each product?
+			Map<Integer, Integer> productAmounts = new HashMap<>();
+			
+			if (order.isPresent()) {
+				List<Order> operations = order.get().getOrdersList();
+				int currentIndex = 0;
+
+				for (Order operation : operations) {
+					if (!operation.getType().equals(Order.CANCEL_ORDER_TYPE)) {
+						/* adding only products amounts which weren't canceled */
+						productAmounts.put(Integer.valueOf(operation.getNumOfProducts()), Integer.valueOf(operation.getNumOfProducts()));
+					} else if ((operation.getType().equals(Order.CANCEL_ORDER_TYPE)) && (currentIndex != operations.size() - 1)) {
+						productAmounts.put(-1, -1);
+					}
+				}
+			}
+			
+			return new ArrayList<Integer>(productAmounts.values());
+		});
 	}
 
 	@Override
 	public CompletableFuture<List<String>> getOrderIdsForUser(String userId) {
-		// TODO Auto-generated method stub
-		return null;
+		return ordersByUsersIDDatabase.findElementByID(userId).thenApply(order -> {
+			List<String> userIDs = new ArrayList<>();
+			
+			if (order.isPresent()) {
+				List<Order> operations = 
+						order.get()
+						.getOrdersList();
+				
+				userIDs = operations.stream()
+						.map(operation -> operation.getOrderID())
+						.distinct()
+						.sorted()
+						.collect(Collectors.toList());
+			}
+			
+			return userIDs;
+		});
 	}
 
 	@Override
 	public CompletableFuture<Long> getTotalAmountSpentByUser(String userId) {
-		// TODO Auto-generated method stub
-		return null;
+		return ordersByUsersIDDatabase.findElementByID(userId).thenApply(order -> {
+			Long totalAmount = (long) 0;
+			
+			if (order.isPresent()) {
+				Map<String, List<Order>> operationsPerOrderID = 
+						order.get()
+						.getOrdersList()
+						.stream()
+						.collect(Collectors.groupingBy(Order::getOrderID));
+				
+				for (List<Order> operations : operationsPerOrderID.values()) {
+					if (!operations.get(operations.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
+						/* calculation per order id: getting the amount of the last order operation multiply the product price */
+						try {
+							totalAmount += Integer.valueOf(operations.get(operations.size() - 1).getNumOfProducts()) * 
+									productsDatabase.findElementByID(operations.get(0).getProductID()).get().get().getPrice();
+						} catch (InterruptedException | ExecutionException e) {
+							throw new RuntimeException();
+						}
+					}
+				}
+			}
+			
+			return totalAmount;
+		});
 	}
 
 	@Override
 	public CompletableFuture<List<String>> getUsersThatPurchased(String productId) {
-		// TODO Auto-generated method stub
-		return null;
+		return ordersByProductsIDDatabase.findElementByID(productId).thenApply(order -> {
+			List<String> userIDs = new ArrayList<>();
+			
+			if (order.isPresent()) {
+				Map<String, List<Order>> operationsPerOrderID = 
+						order.get()
+						.getOrdersList()
+						.stream()
+						.collect(Collectors.groupingBy(Order::getOrderID));
+				
+				for (List<Order> orders : operationsPerOrderID.values()) {
+					if (!orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
+						userIDs.add(orders.get(0).getClientID());
+					}
+				}
+			}
+			
+			return userIDs;
+		});
 	}
 
 	@Override
 	public CompletableFuture<List<String>> getOrderIdsThatPurchased(String productId) {
-		// TODO Auto-generated method stub
-		return null;
+		return ordersByProductsIDDatabase.findElementByID(productId).thenApply(order -> {
+			List<String> orderIDs = new ArrayList<>();
+			
+			if (order.isPresent()) {
+				orderIDs = order.get()
+						  .getOrdersList()
+						  .stream()
+						  .map(operation -> operation.getOrderID())
+						  .distinct()
+						  .collect(Collectors.toList());
+			}
+			
+			return orderIDs;
+		});
 	}
 
 	@Override
 	public CompletableFuture<OptionalLong> getTotalNumberOfItemsPurchased(String productId) {
-		// TODO Auto-generated method stub
-		return null;
+		return ordersByProductsIDDatabase.findElementByID(productId).thenApply(order -> {			
+			if (order.isPresent()) {
+				Long sum = (long) 0;
+				Map<String, List<Order>> operationsPerOrderID = 
+						order.get()
+						.getOrdersList()
+						.stream()
+						.collect(Collectors.groupingBy(Order::getOrderID));
+				
+				for (List<Order> orders : operationsPerOrderID.values()) {
+					if (!orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
+						sum += orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE) ?
+								0 : orders.get(orders.size() - 1).getNumOfProducts();
+					}
+				}
+				
+				return OptionalLong.of(sum);
+			}
+			
+			return OptionalLong.empty();
+		});
 	}
 
 	@Override
 	public CompletableFuture<OptionalDouble> getAverageNumberOfItemsPurchased(String productId) {
-		// TODO Auto-generated method stub
-		return null;
+		return ordersByProductsIDDatabase.findElementByID(productId).thenApply(order -> {			
+			if (order.isPresent()) {
+				Double sum = (double) 0;
+				Integer amount = 0;
+				
+				Map<String, List<Order>> operationsPerOrderID = 
+						order.get()
+						.getOrdersList()
+						.stream()
+						.collect(Collectors.groupingBy(Order::getOrderID));
+				
+				for (List<Order> orders : operationsPerOrderID.values()) {
+					if (!orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
+						sum += orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE) ?
+								0 : orders.get(orders.size() - 1).getNumOfProducts();
+						
+						++amount;
+					}
+				}
+				
+				return OptionalDouble.of(sum / amount);
+			}
+			
+			return OptionalDouble.empty();
+		});
 	}
 
 	@Override
 	public CompletableFuture<OptionalDouble> getCancelRatioForUser(String userId) {
-		// TODO Auto-generated method stub
-		return null;
+		return ordersByUsersIDDatabase.findElementByID(userId).thenApply(order -> {			
+			if (order.isPresent()) {
+				Integer canceled = 0;
+				
+				Map<String, List<Order>> operationsPerOrderID = 
+						order.get()
+						.getOrdersList()
+						.stream()
+						.collect(Collectors.groupingBy(Order::getOrderID));
+				
+				for (List<Order> orders : operationsPerOrderID.values()) {
+					if (orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
+						++canceled;
+					}
+				}
+				
+				return OptionalDouble.of((canceled == 0) ? 0 : (double) operationsPerOrderID.size() / canceled);
+			}
+			
+			return OptionalDouble.empty();
+		});
 	}
 
 	@Override
 	public CompletableFuture<OptionalDouble> getModifyRatioForUser(String userId) {
-		// TODO Auto-generated method stub
-		return null;
+		return ordersByUsersIDDatabase.findElementByID(userId).thenApply(order -> {			
+			if (order.isPresent()) {
+				Integer modified = 0;
+				
+				Map<String, List<Order>> operationsPerOrderID = 
+						order.get()
+						.getOrdersList()
+						.stream()
+						.collect(Collectors.groupingBy(Order::getOrderID));
+				
+				for (List<Order> orders : operationsPerOrderID.values()) {
+					if (orders.size() > 1) {
+						++modified;
+					}
+				}
+				
+				return OptionalDouble.of((modified == 0) ? 0 : (double) operationsPerOrderID.size() / modified);
+			}
+			
+			return OptionalDouble.empty();
+		});
 	}
 
 	@Override
 	public CompletableFuture<Map<String, Long>> getAllItemsPurchased(String userId) {
-		// TODO Auto-generated method stub
-		return null;
+		return ordersByUsersIDDatabase.findElementByID(userId).thenApply(order -> {	
+			Map<String, Long> productCounters = new HashMap<>();
+			
+			if (order.isPresent()) {			
+				Map<String, List<Order>> operationsPerOrderID = 
+						order.get()
+						.getOrdersList()
+						.stream()
+						.collect(Collectors.groupingBy(Order::getOrderID));
+				
+				for (List<Order> orders : operationsPerOrderID.values()) {
+					if (!orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
+						String productID = orders.get(0).getProductID();
+						Long numOfProduct = orders.get(orders.size() - 1).getNumOfProducts().longValue();
+						
+						if (productCounters.containsKey(productID)) {
+							productCounters.put(productID, productCounters.get(productID) + numOfProduct);
+						} else {
+							productCounters.put(productID, numOfProduct);
+						}
+					}
+				}
+			}
+			
+			return productCounters;
+		});
 	}
 
 	@Override
 	public CompletableFuture<Map<String, Long>> getItemsPurchasedByUsers(String productId) {
-		// TODO Auto-generated method stub
-		return null;
+		return ordersByProductsIDDatabase.findElementByID(productId).thenApply(order -> {	
+			Map<String, Long> userCounters = new HashMap<>();
+			
+			if (order.isPresent()) {			
+				Map<String, List<Order>> operationsPerOrderID = 
+						order.get()
+						.getOrdersList()
+						.stream()
+						.collect(Collectors.groupingBy(Order::getOrderID));
+				
+				for (List<Order> orders : operationsPerOrderID.values()) {
+					if (!orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
+						String userID = orders.get(0).getClientID();
+						Long numOfProduct = orders.get(orders.size() - 1).getNumOfProducts().longValue();
+						
+						if (userCounters.containsKey(userID)) {
+							userCounters.put(userID, userCounters.get(userID) + numOfProduct);
+						} else {
+							userCounters.put(userID, numOfProduct);
+						}
+					}
+				}
+			}
+			
+			return userCounters;
+		});
 	}
 }
