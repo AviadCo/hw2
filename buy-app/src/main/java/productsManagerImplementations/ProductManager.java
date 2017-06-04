@@ -53,6 +53,12 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 		this.productsDatabase  			= productsDatabase;
 	}
 		
+	/**
+	 * 
+	 * @param parsedOrder - all orders which have the same order id that were parsed from the user
+	 * @param products - list of all products which were given by the user
+	 * @return - DatabaseElement of all relevant orders with the same order id
+	 */
 	private Optional<DatabaseElement> fixOrderOperations(DatabaseElement parsedOrder, List<Product> products) {
 		DatabaseElement fixedOrder;
 		List<Order> relevantOrderOperations = new ArrayList<>();
@@ -75,6 +81,7 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 		
 		fixedOrder = new DatabaseElement(parsedOrder.getId(), relevantOrderOperations);
 		
+		/* product ID must be valid */
 		if (productIDs.contains(fixedOrder.getOrdersList().get(0).getProductID())) {
 			return Optional.of(fixedOrder);
 		} else {
@@ -82,6 +89,13 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param products - list of all products which were given by the user
+	 * @param allParsedOrders - List of all Database elements. each Database element contains list of orders with the same
+	 * 							order ID.
+	 * @return - List of only the relevant orders
+	 */
 	private List<DatabaseElement> removeIrrelevantOrders(List<Product> products,
 													List<DatabaseElement> allParsedOrders) {
 		List<DatabaseElement> relevantOrders = new ArrayList<>();
@@ -97,27 +111,17 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 		return relevantOrders;
 	}
 	
-	@Override
-	public CompletableFuture<Void> setupXml(String xmlData) {
-		List<Product> products;
-		List<DatabaseElement> allParsedOrders;
+	/**
+	 * This function initialize the databases.
+	 * 
+	 * @param products - list of all products which were given by the user
+	 * @param allParsedOrders - List of all Database elements. each Database element contains list of orders with the same
+	 * 							order ID.
+	 * @return - Void
+	 */
+	private CompletableFuture<Void> initializeDatabase(List<Product> products, List<DatabaseElement> allParsedOrders)
+	{
 		List<DatabaseElement> ordersAfterFixup;
-		
-		try {
-			products = ProductsParserXml.createListOfProducts(xmlData);
-		} catch (Exception e) {
-			e.printStackTrace();
-			
-			throw new RuntimeException();
-		}
-		
-		try {
-			allParsedOrders = ProductsParserXml.createListOfOrders(xmlData);
-		} catch (Exception e) {
-			e.printStackTrace();
-			
-			throw new RuntimeException();
-		}
 		
 		ordersAfterFixup = removeIrrelevantOrders(products, allParsedOrders);
 
@@ -140,6 +144,30 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 		productsDatabase.add(products);
 				
 		return CompletableFuture.completedFuture(null);
+	}
+	
+	@Override
+	public CompletableFuture<Void> setupXml(String xmlData) {
+		List<Product> products;
+		List<DatabaseElement> allParsedOrders;
+		
+		try {
+			products = ProductsParserXml.createListOfProducts(xmlData);
+		} catch (Exception e) {
+			e.printStackTrace();
+			
+			throw new RuntimeException();
+		}
+		
+		try {
+			allParsedOrders = ProductsParserXml.createListOfOrders(xmlData);
+		} catch (Exception e) {
+			e.printStackTrace();
+			
+			throw new RuntimeException();
+		}
+		
+		return initializeDatabase(products, allParsedOrders);
 	}
 
 	@Override
