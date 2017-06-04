@@ -14,14 +14,14 @@ public interface IStringableFactory<ElementType> {
 	/**
 	 * 
 	 * @param s  - String which represents the object form type ElementType
-	 * @return - the element from type ElementType
+	 * @return - CompletableFuture of the element from type ElementType
 	 */
 	CompletableFuture<ElementType> createObject(CompletableFuture<String> s);
 	
 	/**
 	 * 
 	 * @param e  - the element from type ElementType
-	 * @return - String which represents the object form type ElementType
+	 * @return - CompletableFuture of String which represents the object form type ElementType
 	 */
 	CompletableFuture<String> createString(CompletableFuture<ElementType> e);
 }

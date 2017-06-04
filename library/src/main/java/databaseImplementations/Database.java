@@ -37,24 +37,24 @@ public class Database<Key extends Comparable<Key>, Value> implements IDatabase<K
 
 	/**
 	 * 
-	 * @param lineStorageKeys - lineStorage to store the keys
+	 * @param lineStorageKeys   - lineStorage to store the keys
 	 * @param lineStorageValues - lineStorage to store the values
-	 * @param keyFactory - factory to create key from string
-	 * @param valueFactory - factory to create value from string
+	 * @param keyFactory        - factory to create key from string
+	 * @param valueFactory      - factory to create value from string
 	 */
 	@Inject
 	public Database(FutureLineStorage lineStorageKeys, FutureLineStorage lineStorageValues,
 					IStringableFactory<Key> keyFactory, IStringableFactory<Value> valueFactory) {
-		this.lineStorageKeys = lineStorageKeys;
+		this.lineStorageKeys   = lineStorageKeys;
 		this.lineStorageValues = lineStorageValues;
-		this.keyFactory = keyFactory;
-		this.valueFactory = valueFactory;
+		this.keyFactory        = keyFactory;
+		this.valueFactory      = valueFactory;
 	}
 	
 	/**
 	 * 
 	 * @param index - line index of the value
-	 * @return - Value that is stored in the row index
+	 * @return - CompletableFuture of the Value that is stored in the row index
 	 */
 	private CompletableFuture<Value> getValueByIndex(Integer index) {
 		CompletableFuture<String> lineValue = lineStorageValues.read(index);
@@ -65,14 +65,14 @@ public class Database<Key extends Comparable<Key>, Value> implements IDatabase<K
 	/**
 	 * 
 	 * @param index - line index of the key 
-	 * @return - key that is stored in the row index
+	 * @return - CompletableFuture of the key that is stored in the row index
 	 */
 	private CompletableFuture<Key> getKeyByIndex(Integer index) {
 		return keyFactory.createObject(lineStorageKeys.read(index));
 	}
 	
 	/**
-	 * @return - number of elements in database
+	 * @return - CompletableFuture of the number of elements in database
 	 */
 	@Override
 	public CompletableFuture<Integer> getNumberOfElements() {
@@ -114,21 +114,6 @@ public class Database<Key extends Comparable<Key>, Value> implements IDatabase<K
 		});				
 			
 		CompletableFuture<Key> currentkey = currentLine.thenCompose((i) -> { return this.getKeyByIndex(i);});
-//		return currentkey.thenCompose((k) -> {
-//			
-//			int compareResult = k.compareTo(keyToFind);
-//			if (compareResult == 0) {
-//				return currentLine;
-//			} else if (compareResult < 0) {
-//				CompletableFuture<Integer> newLowLine = currentLine.thenApply((x) -> x + 1);
-//				
-//				return findElementByIDRec(keyToFind, newLowLine, highLine);
-//			} else {
-//				CompletableFuture<Integer> newHighLine = currentLine.thenApply((x) -> x - 1);
-//				
-//				return findElementByIDRec(keyToFind, lowLine, newHighLine);
-//			} 
-//		});
 		
 		CompletableFuture<Integer> searchStatus = lowLine.thenCombine(highLine, (low, high) -> {
 			if (low > high) {
@@ -140,10 +125,11 @@ public class Database<Key extends Comparable<Key>, Value> implements IDatabase<K
 			}
 		});
 				
+		/* If key exists, comparing it with the key to find */
 		CompletableFuture<Integer> result = currentkey.thenCombine(searchStatus, (key, status) -> {
 			if ((status == SEARCH_OUT_OF_BOUND) || (status == SEARCH_LAST_INTERATION && key.compareTo(keyToFind) != 0)) {
 				/* no need to continue search - we are out of bounds or in the last iteration and keys aren't equals */
-				return -1;
+				return SEARCH_OUT_OF_BOUND;
 			} else {
 				/* the comparison can be -1 this way */
 				return key.compareTo(keyToFind) * 2;
@@ -155,11 +141,12 @@ public class Database<Key extends Comparable<Key>, Value> implements IDatabase<K
 			@Override
 			public CompletionStage<Integer> apply(Integer compareResult) {
 				
-				if (compareResult == -1) {
-					return CompletableFuture.completedFuture(-1);
+				if (compareResult == SEARCH_OUT_OF_BOUND) {
+					return CompletableFuture.completedFuture(SEARCH_OUT_OF_BOUND);
 				}
 				
 				if (compareResult == 0) {
+					/* key matches */
 					return currentLine;
 				} else if (compareResult < 0) {
 					CompletableFuture<Integer> newLowLine = currentLine.thenApply((x) -> x + 1);
@@ -172,47 +159,12 @@ public class Database<Key extends Comparable<Key>, Value> implements IDatabase<K
 				} 
 			}
 		});
-		
-//		return currentkey.thenCompose(new Function<Key, CompletionStage<Integer>>() {
-//
-//			@Override
-//			public CompletionStage<Integer> apply(Key k) {
-//				int compareResult = k.compareTo(keyToFind);
-//				boolean notFound;
-//				
-//				lowLine.thenCombine(highLine, (low, high) -> {
-//					if (low > high) {
-//						BOOM!;
-//						notFound = true;
-//					} else {
-//						notFound = false;
-//					}
-//					
-//					return 0;
-//				});		
-//				
-//				if (notFound) {
-//					return CompletableFuture.completedFuture(-1);
-//				}
-//				
-//				if (compareResult == 0) {
-//					return currentLine;
-//				} else if (compareResult < 0) {
-//					CompletableFuture<Integer> newLowLine = currentLine.thenApply((x) -> x + 1);
-//					
-//					return findElementByIDRec(keyToFind, newLowLine, highLine);
-//				} else {
-//					CompletableFuture<Integer> newHighLine = currentLine.thenApply((x) -> x - 1);
-//					
-//					return findElementByIDRec(keyToFind, lowLine, newHighLine);
-//				} 
-//			}
-//		});
 	}
 	
 	/**
 	 * @param - key of the wanted element
-	 * @return - if key exists,  Optional<Value> of the element. else, Optionl.empty().
+	 * @return - if key exists, CompletableFuture of the Optional<Value> of the element. 
+	 * 			 else, of the CompletableFuture Optionl.empty().
 	 */
 	@Override
 	public CompletableFuture<Optional<Value>> findElementByID(Key key) {
@@ -220,7 +172,7 @@ public class Database<Key extends Comparable<Key>, Value> implements IDatabase<K
 				getNumberOfElements().thenApply(x -> x - 1));
 		
 		return index.thenCompose((i) -> {
-			if (i == -1) {
+			if (i == SEARCH_OUT_OF_BOUND) {
 				return CompletableFuture.completedFuture(Optional.empty());
 			} else {
 				return getValueByIndex(i).thenApply((v) -> Optional.of(v));

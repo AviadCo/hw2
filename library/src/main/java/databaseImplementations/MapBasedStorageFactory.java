@@ -17,5 +17,4 @@ public class MapBasedStorageFactory implements FutureLineStorageFactory {
 	public CompletableFuture<FutureLineStorage> open(String arg0) throws IndexOutOfBoundsException {
 		return CompletableFuture.completedFuture(new MapBasedStorage());
 	}
-
 }

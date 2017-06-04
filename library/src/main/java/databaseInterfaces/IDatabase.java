@@ -13,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface IDatabase<Key extends Comparable<Key>, Value> {	
 	/**
-	 * @return - number of elements in database
+	 * @return - CompletableFuture of the number of the elements in database
 	 */
 	CompletableFuture<Integer> getNumberOfElements();
 
@@ -27,9 +27,9 @@ public interface IDatabase<Key extends Comparable<Key>, Value> {
 	void add(List<? extends IDatabaseElement<Key, Value>> elements);
 
 	/**
-	 * findStudentByID - returns element by it's key using binary search algorithm.
+	 * findStudentByID - returns CompletableFuture of element by it's key using binary search algorithm.
 	 * 
-	 * If element dosen't exist returns Optional.empty().
+	 * If element dosen't exist returns CompletableFuture of Optional.empty().
 	 *  */
 	CompletableFuture<Optional<Value>> findElementByID(Key key);
 }
