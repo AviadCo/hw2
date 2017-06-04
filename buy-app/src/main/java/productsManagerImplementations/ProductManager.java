@@ -82,31 +82,29 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 		}
 	}
 	
-	private CompletableFuture<List<DatabaseElement>> removeIrrelevantOrders(CompletableFuture<List<Product>> products,
-													CompletableFuture<List<DatabaseElement>> allParsedOrders) {
-		return allParsedOrders.thenCombine(products, (orders, productsList) -> {
-			List<DatabaseElement> relevantOrders = new ArrayList<>();
+	private List<DatabaseElement> removeIrrelevantOrders(List<Product> products,
+													List<DatabaseElement> allParsedOrders) {
+		List<DatabaseElement> relevantOrders = new ArrayList<>();
+		
+		for (DatabaseElement order : allParsedOrders) {
+			Optional<DatabaseElement> relevantOrder = fixOrderOperations(order, products);
 			
-			for (DatabaseElement order : orders) {
-				Optional<DatabaseElement> relevantOrder = fixOrderOperations(order, productsList);
-				
-				if (relevantOrder.isPresent()) {
-					relevantOrders.add(relevantOrder.get());
-				}
+			if (relevantOrder.isPresent()) {
+				relevantOrders.add(relevantOrder.get());
 			}
-			
-			return relevantOrders;
-		});
+		}
+		
+		return relevantOrders;
 	}
 	
 	@Override
 	public CompletableFuture<Void> setupXml(String xmlData) {
-		CompletableFuture<List<Product>> products;
-		CompletableFuture<List<DatabaseElement>> allParsedOrders;
-		CompletableFuture<List<DatabaseElement>> ordersAfterFixup;
+		List<Product> products;
+		List<DatabaseElement> allParsedOrders;
+		List<DatabaseElement> ordersAfterFixup;
 		
 		try {
-			products = CompletableFuture.completedFuture(ProductsParserXml.createListOfProducts(xmlData));
+			products = ProductsParserXml.createListOfProducts(xmlData);
 		} catch (Exception e) {
 			e.printStackTrace();
 			
@@ -114,7 +112,7 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 		}
 		
 		try {
-			allParsedOrders = CompletableFuture.completedFuture(ProductsParserXml.createListOfOrders(xmlData));
+			allParsedOrders = ProductsParserXml.createListOfOrders(xmlData);
 		} catch (Exception e) {
 			e.printStackTrace();
 			
@@ -123,38 +121,23 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 		
 		ordersAfterFixup = removeIrrelevantOrders(products, allParsedOrders);
 
-		//TODO fix this		
-//		try {
-//			ordersByOrdersIDDatabase.add(ordersAfterFixup);	
-//		} catch (InterruptedException | ExecutionException e) {
-//			throw new RuntimeException();
-//		}
-//		
-//		try {
-//			ordersByUsersIDDatabase.add(ordersAfterFixup.thenApply(orders -> {
-//				for(DatabaseElement order : orders) {
-//					order.setId(order.getOrdersList().get(0).getClientID());
-//				}
-//				
-//				return orders;
-//			}));
-//		} catch (InterruptedException | ExecutionException e) {
-//			throw new RuntimeException();
-//		}
-//		
-//		try {
-//			ordersByProductsIDDatabase.add(ordersAfterFixup.thenApply(orders -> {
-//				for(DatabaseElement order : orders) {
-//					order.setId(order.getOrdersList().get(0).getProductID());
-//				}
-//				
-//				return orders;
-//			}));
-//		} catch (InterruptedException | ExecutionException e) {
-//			throw new RuntimeException();
-//		}
+		ordersByOrdersIDDatabase.add(ordersAfterFixup);	
 		
-//		productsDatabase.add(products);
+		ordersByUsersIDDatabase.add(ordersAfterFixup
+				.stream()
+				.map(order -> {
+					return new DatabaseElement(order.getOrdersList().get(0).getClientID(), order.getOrdersList());
+				})
+				.collect(Collectors.toList()));
+		
+		ordersByProductsIDDatabase.add(ordersAfterFixup
+				.stream()
+				.map(order -> {
+					return new DatabaseElement(order.getOrdersList().get(0).getProductID(), order.getOrdersList());
+				})
+				.collect(Collectors.toList()));
+		
+		productsDatabase.add(products);
 				
 		return CompletableFuture.completedFuture(null);
 	}
@@ -188,7 +171,6 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 	public CompletableFuture<Boolean> isModifiedOrder(String orderId) {
 		return ordersByOrdersIDDatabase.findElementByID(orderId).thenApply(order -> {
 			if (order.isPresent()) {
-				//TODO check what is modified...
 				List<Order> orders = order.get().getOrdersList();
 				
 				for (Order orderOperation : orders) {
@@ -237,9 +219,7 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 	@Override
 	public CompletableFuture<List<Integer>> getHistoryOfOrder(String orderId) {
 		return ordersByOrdersIDDatabase.findElementByID(orderId).thenApply(order -> {
-			/* we want only one operation from each product */
-			//TODO do we really want only one from each product?
-			Map<Integer, Integer> productAmounts = new HashMap<>();
+			List<Integer> productAmounts = new ArrayList<Integer>();
 			
 			if (order.isPresent()) {
 				List<Order> operations = order.get().getOrdersList();
@@ -248,14 +228,14 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 				for (Order operation : operations) {
 					if (!operation.getType().equals(Order.CANCEL_ORDER_TYPE)) {
 						/* adding only products amounts which weren't canceled */
-						productAmounts.put(Integer.valueOf(operation.getNumOfProducts()), Integer.valueOf(operation.getNumOfProducts()));
+						productAmounts.add(Integer.valueOf(operation.getNumOfProducts()));
 					} else if ((operation.getType().equals(Order.CANCEL_ORDER_TYPE)) && (currentIndex != operations.size() - 1)) {
-						productAmounts.put(-1, -1);
+						productAmounts.add(-1);
 					}
 				}
 			}
 			
-			return new ArrayList<Integer>(productAmounts.values());
+			return productAmounts;
 		});
 	}
 

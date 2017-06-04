@@ -49,7 +49,7 @@ public class DatabaseTest {
 		
 		elementsList.addAll(elementsMap.values());
 		
-		database.add(CompletableFuture.completedFuture(elementsList));
+		database.add(elementsList);
 	}
 	
 	@Test (timeout = 500)
