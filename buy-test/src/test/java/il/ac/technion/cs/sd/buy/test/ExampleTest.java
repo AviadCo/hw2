@@ -4,13 +4,9 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import il.ac.technion.cs.sd.buy.app.BuyProductInitializer;
 import il.ac.technion.cs.sd.buy.app.BuyProductReader;
-import il.ac.technion.cs.sd.buy.ext.FutureLineStorage;
-import il.ac.technion.cs.sd.buy.ext.LineStorageModule;
-import io.reactivex.subjects.PublishSubject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
-import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -22,7 +18,7 @@ import static org.junit.Assert.assertTrue;
 
 public class ExampleTest {
 
-  //@Rule public Timeout globalTimeout = Timeout.seconds(20);
+  @Rule public Timeout globalTimeout = Timeout.seconds(20);
 
   private static Injector setupAndGetInjector(String fileName) throws FileNotFoundException {
     String fileContents =
@@ -47,20 +43,20 @@ public class ExampleTest {
   }
 
 //  @Test
-//  public void testSimpleJson() throws Exception {
-//    Injector injector = setupAndGetInjector("small.json");
-//
-//    BuyProductReader reader = injector.getInstance(BuyProductReader.class);
-//    assertEquals(2 * 1000 + 5 * 100 + 100 * 1, reader.getTotalAmountSpentByUser("1").get().intValue());
-//  }
+  public void testSimpleJson() throws Exception {
+    Injector injector = setupAndGetInjector("small.json");
+
+    BuyProductReader reader = injector.getInstance(BuyProductReader.class);
+    assertEquals(2 * 1000 + 5 * 100 + 100 * 1, reader.getTotalAmountSpentByUser("1").get().intValue());
+  }
 
 //  @Test
-//  public void testSimpleJson2() throws Exception {
-//    Injector injector = setupAndGetInjector("small_2.json");
-//
-//    BuyProductReader reader = injector.getInstance(BuyProductReader.class);
-//    assertTrue(reader.isValidOrderId("foo1234").get());
-//    assertTrue(reader.isModifiedOrder("foo1234").get());
-//    assertTrue(reader.isCanceledOrder("foo1234").get());
-//  }
+  public void testSimpleJson2() throws Exception {
+    Injector injector = setupAndGetInjector("small_2.json");
+
+    BuyProductReader reader = injector.getInstance(BuyProductReader.class);
+    assertTrue(reader.isValidOrderId("foo1234").get());
+    assertTrue(reader.isModifiedOrder("foo1234").get());
+    assertTrue(reader.isCanceledOrder("foo1234").get());
+  }
 }

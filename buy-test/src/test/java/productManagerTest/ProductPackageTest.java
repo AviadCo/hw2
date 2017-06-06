@@ -2,7 +2,6 @@ package productManagerTest;
 
 import static org.junit.Assert.*;
 
-import java.awt.List;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
@@ -10,10 +9,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
-import java.util.OptionalLong;
 import java.util.Scanner;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -23,6 +23,8 @@ import il.ac.technion.cs.sd.buy.app.BuyProductReader;
 import il.ac.technion.cs.sd.buy.test.BuyProductModule;
 
 public class ProductPackageTest {
+	
+	@Rule public Timeout globalTimeout = Timeout.seconds(20);
 
 	  private static Injector setupAndGetInjector(String fileName) throws FileNotFoundException {
 		    String fileContents =
