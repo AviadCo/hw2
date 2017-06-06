@@ -70,7 +70,7 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 		for (Order orderOperation : parsedOrder.getOrdersList()) {
 			relevantOrderOperations.add(orderOperation);
 			
-			if (orderOperation.equals(Order.COMMIT_ORDER_TYPE)) {
+			if (orderOperation.getType().equals(Order.COMMIT_ORDER_TYPE)) {
 				/* all operations before last COMMIT_ORDER_TYPE are not relevant to store */
 				break;
 			}
@@ -122,24 +122,48 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 	private CompletableFuture<Void> initializeDatabase(List<Product> products, List<DatabaseElement> allParsedOrders)
 	{
 		List<DatabaseElement> ordersAfterFixup;
+		List<DatabaseElement> ordersByUsers = new ArrayList<DatabaseElement>();
+		List<DatabaseElement> ordersByProducts = new ArrayList<DatabaseElement>();
+		Map<String, DatabaseElement> ordersByUsersIDMap = new HashMap<String, DatabaseElement>();
+		Map<String, DatabaseElement> ordersByProductsIDMap = new HashMap<String, DatabaseElement>();
 		
 		ordersAfterFixup = removeIrrelevantOrders(products, allParsedOrders);
 
 		ordersByOrdersIDDatabase.add(ordersAfterFixup);	
 		
-		ordersByUsersIDDatabase.add(ordersAfterFixup
-				.stream()
-				.map(order -> {
-					return new DatabaseElement(order.getOrdersList().get(0).getClientID(), order.getOrdersList());
-				})
-				.collect(Collectors.toList()));
+		/* we need deep clone to work on lists */
+		for (DatabaseElement element : ordersAfterFixup) {
+			ordersByUsers.add(new DatabaseElement(element));
+			ordersByProducts.add(new DatabaseElement(element));
+		}
 		
-		ordersByProductsIDDatabase.add(ordersAfterFixup
-				.stream()
-				.map(order -> {
-					return new DatabaseElement(order.getOrdersList().get(0).getProductID(), order.getOrdersList());
-				})
-				.collect(Collectors.toList()));
+		for (DatabaseElement element : ordersByUsers) {
+			String userID = element.getOrdersList().get(0).getClientID();
+			
+			if (ordersByUsersIDMap.containsKey(userID)) {
+				List<Order> orders = ordersByUsersIDMap.get(userID).getOrdersList();
+				
+				orders.addAll(element.getOrdersList());
+				ordersByUsersIDMap.put(userID, new DatabaseElement(userID, orders));
+			} else {
+				ordersByUsersIDMap.put(userID, new DatabaseElement(userID, element.getOrdersList()));
+			}
+		}
+		ordersByUsersIDDatabase.add(new ArrayList<DatabaseElement>(ordersByUsersIDMap.values()));
+		
+		for (DatabaseElement element : ordersByProducts) {
+			String productID = element.getOrdersList().get(0).getProductID();
+			
+			if (ordersByProductsIDMap.containsKey(productID)) {
+				List<Order> orders = ordersByProductsIDMap.get(productID).getOrdersList();
+				
+				orders.addAll(element.getOrdersList());
+				ordersByProductsIDMap.put(productID, new DatabaseElement(productID, orders));
+			} else {
+				ordersByProductsIDMap.put(productID, new DatabaseElement(productID, element.getOrdersList()));
+			}
+		}
+		ordersByProductsIDDatabase.add(new ArrayList<DatabaseElement>(ordersByProductsIDMap.values()));
 		
 		productsDatabase.add(products);
 				
@@ -222,7 +246,7 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 				int operationIndex = orders.size() - 1;
 				Integer numOfProducts = 0;
 				
-				while (operationIndex > 0) {
+				while (operationIndex >= 0) {
 					Order operation = orders.get(operationIndex);
 					
 					if (!operation.getType().equals(Order.CANCEL_ORDER_TYPE)) {
@@ -301,7 +325,7 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 						.collect(Collectors.groupingBy(Order::getOrderID));
 				
 				for (List<Order> operations : operationsPerOrderID.values()) {
-					if (!operations.get(operations.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
+					if (!operations.get(operations.size() - 1).getType().equals(Order.CANCEL_ORDER_TYPE)) {
 						/* calculation per order id: getting the amount of the last order operation multiply the product price */
 						try {
 							totalAmount += Integer.valueOf(operations.get(operations.size() - 1).getNumOfProducts()) * 
@@ -330,13 +354,14 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 						.collect(Collectors.groupingBy(Order::getOrderID));
 				
 				for (List<Order> orders : operationsPerOrderID.values()) {
-					if (!orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
+					if ((!orders.get(orders.size() - 1).getType().equals(Order.CANCEL_ORDER_TYPE)) &&
+					    (!userIDs.contains(orders.get(0).getClientID()))) {
 						userIDs.add(orders.get(0).getClientID());
 					}
 				}
 			}
 			
-			return userIDs;
+			return userIDs.stream().sorted().collect(Collectors.toList());
 		});
 	}
 
@@ -351,6 +376,7 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 						  .stream()
 						  .map(operation -> operation.getOrderID())
 						  .distinct()
+						  .sorted()
 						  .collect(Collectors.toList());
 			}
 			
@@ -370,8 +396,8 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 						.collect(Collectors.groupingBy(Order::getOrderID));
 				
 				for (List<Order> orders : operationsPerOrderID.values()) {
-					if (!orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
-						sum += orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE) ?
+					if (!orders.get(orders.size() - 1).getType().equals(Order.CANCEL_ORDER_TYPE)) {
+						sum += orders.get(orders.size() - 1).getType().equals(Order.CANCEL_ORDER_TYPE) ?
 								0 : orders.get(orders.size() - 1).getNumOfProducts();
 					}
 				}
@@ -397,15 +423,15 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 						.collect(Collectors.groupingBy(Order::getOrderID));
 				
 				for (List<Order> orders : operationsPerOrderID.values()) {
-					if (!orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
-						sum += orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE) ?
+					if (!orders.get(orders.size() - 1).getType().equals(Order.CANCEL_ORDER_TYPE)) {
+						sum += orders.get(orders.size() - 1).getType().equals(Order.CANCEL_ORDER_TYPE) ?
 								0 : orders.get(orders.size() - 1).getNumOfProducts();
 						
 						++amount;
 					}
 				}
 				
-				return OptionalDouble.of(sum / amount);
+				return OptionalDouble.of(amount != 0 ? sum / amount : 0);
 			}
 			
 			return OptionalDouble.empty();
@@ -425,7 +451,7 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 						.collect(Collectors.groupingBy(Order::getOrderID));
 				
 				for (List<Order> orders : operationsPerOrderID.values()) {
-					if (orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
+					if (orders.get(orders.size() - 1).getType().equals(Order.CANCEL_ORDER_TYPE)) {
 						++canceled;
 					}
 				}
@@ -455,7 +481,7 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 					}
 				}
 				
-				return OptionalDouble.of((modified == 0) ? 0 : (double) operationsPerOrderID.size() / modified);
+				return OptionalDouble.of((operationsPerOrderID.size() == 0) ? 0 : (double) modified / operationsPerOrderID.size());
 			}
 			
 			return OptionalDouble.empty();
@@ -475,7 +501,7 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 						.collect(Collectors.groupingBy(Order::getOrderID));
 				
 				for (List<Order> orders : operationsPerOrderID.values()) {
-					if (!orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
+					if (!orders.get(orders.size() - 1).getType().equals(Order.CANCEL_ORDER_TYPE)) {
 						String productID = orders.get(0).getProductID();
 						Long numOfProduct = orders.get(orders.size() - 1).getNumOfProducts().longValue();
 						
@@ -505,7 +531,7 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 						.collect(Collectors.groupingBy(Order::getOrderID));
 				
 				for (List<Order> orders : operationsPerOrderID.values()) {
-					if (!orders.get(orders.size() - 1).equals(Order.CANCEL_ORDER_TYPE)) {
+					if (!orders.get(orders.size() - 1).getType().equals(Order.CANCEL_ORDER_TYPE)) {
 						String userID = orders.get(0).getClientID();
 						Long numOfProduct = orders.get(orders.size() - 1).getNumOfProducts().longValue();
 						

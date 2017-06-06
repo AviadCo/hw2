@@ -34,6 +34,12 @@ public class DatabaseElement implements IDatabaseElement<String, DatabaseElement
 		this.ordersList = ordersList;
 	}
 
+	public DatabaseElement (DatabaseElement other) {
+		id = other.id;
+		ordersList = new ArrayList<>();
+		ordersList.addAll(other.getOrdersList());
+	}
+	
 	public String getId() {
 		return id;
 	}

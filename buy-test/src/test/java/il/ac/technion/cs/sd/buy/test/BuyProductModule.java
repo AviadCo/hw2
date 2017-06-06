@@ -13,6 +13,7 @@ import basicClassesFactory.DatabaseElementFactory;
 import basicClassesFactory.ProductFactory;
 import basicClassesFactory.StringFactory;
 import databaseImplementations.Database;
+import databaseImplementations.MapBasedStorageFactory;
 import il.ac.technion.cs.sd.buy.app.BuyProductInitializer;
 import il.ac.technion.cs.sd.buy.app.BuyProductReader;
 import il.ac.technion.cs.sd.buy.ext.FutureLineStorageFactory;
@@ -26,6 +27,7 @@ public class BuyProductModule extends AbstractModule {
 
 	@Override
 	protected void configure() {
+		  bind(FutureLineStorageFactory.class).to(MapBasedStorageFactory.class);
 		  bind(BuyProductInitializer.class).to(ProductManager.class);
 		  bind(BuyProductReader.class).to(ProductManager.class);
 	}
