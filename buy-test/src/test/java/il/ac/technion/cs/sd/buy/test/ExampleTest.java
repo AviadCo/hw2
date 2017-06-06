@@ -18,11 +18,12 @@ import static org.junit.Assert.assertTrue;
 
 public class ExampleTest {
 
-  //@Rule public Timeout globalTimeout = Timeout.seconds(20);
+  @Rule public Timeout globalTimeout = Timeout.seconds(20);
 
   private static Injector setupAndGetInjector(String fileName) throws FileNotFoundException {
     String fileContents =
         new Scanner(new File(ExampleTest.class.getResource(fileName).getFile())).useDelimiter("\\Z").next();
+    //TODO remember to remove comment
     Injector injector = Guice.createInjector(new BuyProductModule());//, new LineStorageModule());
     BuyProductInitializer bpi = injector.getInstance(BuyProductInitializer.class);
     if (fileName.endsWith("xml"))

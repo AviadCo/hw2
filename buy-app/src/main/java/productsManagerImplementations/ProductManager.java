@@ -112,7 +112,48 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 	}
 	
 	/**
-	 * This function initialize the databases.
+	 * This function initialize the ordersByUsersIDDatabase and ordersByProductsIDDatabase databases.
+	 * 
+	 * @param ordersAfterFixup - List of the relevant Database elements.
+	 * @param byUsers - if true, fill ordersByUsersIDDatabase, else fill ordersByProductsIDDatabase
+	 */
+	private void fillOrderByUsersProductsDatabases(List<DatabaseElement> ordersAfterFixup, boolean byUsers)
+	{
+		Map<String, DatabaseElement> ordersMap = new HashMap<String, DatabaseElement>();
+		List<DatabaseElement> ordersList = new ArrayList<DatabaseElement>();
+		
+		/* we need deep clone to work on lists */
+		for (DatabaseElement element : ordersAfterFixup) {
+			ordersList.add(new DatabaseElement(element));
+		}
+		
+		for (DatabaseElement element : ordersList) {
+			String id;
+			if (byUsers) {
+				id = element.getOrdersList().get(0).getUserID();
+			} else {
+				id = element.getOrdersList().get(0).getProductID();
+			}			
+			
+			if (ordersMap.containsKey(id)) {
+				List<Order> orders = ordersMap.get(id).getOrdersList();
+				
+				orders.addAll(element.getOrdersList());
+				ordersMap.put(id, new DatabaseElement(id, orders));
+			} else {
+				ordersMap.put(id, new DatabaseElement(id, element.getOrdersList()));
+			}
+		}
+		
+		if (byUsers) {
+			ordersByUsersIDDatabase.add(new ArrayList<DatabaseElement>(ordersMap.values()));
+		} else {
+			ordersByProductsIDDatabase.add(new ArrayList<DatabaseElement>(ordersMap.values()));
+		}
+	}
+	
+	/**
+	 * This function initialize all of the databases.
 	 * 
 	 * @param products - list of all products which were given by the user
 	 * @param allParsedOrders - List of all Database elements. each Database element contains list of orders with the same
@@ -122,49 +163,13 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 	private CompletableFuture<Void> initializeDatabase(List<Product> products, List<DatabaseElement> allParsedOrders)
 	{
 		List<DatabaseElement> ordersAfterFixup;
-		List<DatabaseElement> ordersByUsers = new ArrayList<DatabaseElement>();
-		List<DatabaseElement> ordersByProducts = new ArrayList<DatabaseElement>();
-		Map<String, DatabaseElement> ordersByUsersIDMap = new HashMap<String, DatabaseElement>();
-		Map<String, DatabaseElement> ordersByProductsIDMap = new HashMap<String, DatabaseElement>();
 		
 		ordersAfterFixup = removeIrrelevantOrders(products, allParsedOrders);
 
-		ordersByOrdersIDDatabase.add(ordersAfterFixup);	
-		
-		/* we need deep clone to work on lists */
-		for (DatabaseElement element : ordersAfterFixup) {
-			ordersByUsers.add(new DatabaseElement(element));
-			ordersByProducts.add(new DatabaseElement(element));
-		}
-		
-		for (DatabaseElement element : ordersByUsers) {
-			String userID = element.getOrdersList().get(0).getClientID();
-			
-			if (ordersByUsersIDMap.containsKey(userID)) {
-				List<Order> orders = ordersByUsersIDMap.get(userID).getOrdersList();
-				
-				orders.addAll(element.getOrdersList());
-				ordersByUsersIDMap.put(userID, new DatabaseElement(userID, orders));
-			} else {
-				ordersByUsersIDMap.put(userID, new DatabaseElement(userID, element.getOrdersList()));
-			}
-		}
-		ordersByUsersIDDatabase.add(new ArrayList<DatabaseElement>(ordersByUsersIDMap.values()));
-		
-		for (DatabaseElement element : ordersByProducts) {
-			String productID = element.getOrdersList().get(0).getProductID();
-			
-			if (ordersByProductsIDMap.containsKey(productID)) {
-				List<Order> orders = ordersByProductsIDMap.get(productID).getOrdersList();
-				
-				orders.addAll(element.getOrdersList());
-				ordersByProductsIDMap.put(productID, new DatabaseElement(productID, orders));
-			} else {
-				ordersByProductsIDMap.put(productID, new DatabaseElement(productID, element.getOrdersList()));
-			}
-		}
-		ordersByProductsIDDatabase.add(new ArrayList<DatabaseElement>(ordersByProductsIDMap.values()));
-		
+		/* filling databases */
+		ordersByOrdersIDDatabase.add(ordersAfterFixup);		
+		fillOrderByUsersProductsDatabases(ordersAfterFixup, true);
+		fillOrderByUsersProductsDatabases(ordersAfterFixup, false);		
 		productsDatabase.add(products);
 				
 		return CompletableFuture.completedFuture(null);
@@ -341,8 +346,8 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 				
 				for (List<Order> orders : operationsPerOrderID.values()) {
 					if ((!orders.get(orders.size() - 1).getType().equals(Order.CANCEL_ORDER_TYPE)) &&
-					    (!userIDs.contains(orders.get(0).getClientID()))) {
-						userIDs.add(orders.get(0).getClientID());
+					    (!userIDs.contains(orders.get(0).getUserID()))) {
+						userIDs.add(orders.get(0).getUserID());
 					}
 				}
 			}
@@ -506,7 +511,7 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 				
 				for (List<Order> orders : operationsPerOrderID.values()) {
 					if (!orders.get(orders.size() - 1).getType().equals(Order.CANCEL_ORDER_TYPE)) {
-						String userID = orders.get(0).getClientID();
+						String userID = orders.get(0).getUserID();
 						Long numOfProduct = orders.get(orders.size() - 1).getNumOfProducts().longValue();
 						
 						if (userCounters.containsKey(userID)) {

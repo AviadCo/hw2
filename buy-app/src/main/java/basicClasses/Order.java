@@ -15,7 +15,7 @@ public class Order {
 	private final static String ORDER_SPLITER = " ";
 	
 	private String orderID;
-	private String clientID;
+	private String userID;
 	private String productID;
 	private Integer numOfProducts;
 	private String type;
@@ -28,7 +28,7 @@ public class Order {
 		String[] orderArray = order.split(ORDER_SPLITER);
 		
 		orderID = orderArray[0];
-		clientID = orderArray[1];
+		userID = orderArray[1];
 		productID = orderArray[2];
 		numOfProducts = Integer.valueOf(orderArray[3]);
 		type = orderArray[4];
@@ -36,7 +36,7 @@ public class Order {
 	
 	public Order (String orderID, String clientID, String productID, String numOfProducts, String type) {
 		this.orderID = orderID;
-		this.clientID = clientID;
+		this.userID = clientID;
 		this.productID = productID;
 		this.numOfProducts = Integer.valueOf(numOfProducts);
 		this.type = type;
@@ -44,7 +44,7 @@ public class Order {
 	
 	public Order (String orderID, String clientID, String productID, Integer numOfProducts, String type) {
 		this.orderID = orderID;
-		this.clientID = clientID;
+		this.userID = clientID;
 		this.productID = productID;
 		this.numOfProducts = numOfProducts;
 		this.type = type;
@@ -55,7 +55,7 @@ public class Order {
 	 * @return string which represents the order
 	 */
 	public String parseOrderToString() {
-		return orderID + ORDER_SPLITER + clientID + ORDER_SPLITER + productID + ORDER_SPLITER + numOfProducts.toString() + ORDER_SPLITER + type;
+		return orderID + ORDER_SPLITER + userID + ORDER_SPLITER + productID + ORDER_SPLITER + numOfProducts.toString() + ORDER_SPLITER + type;
 	}
 	
 	public String getOrderID() {
@@ -66,12 +66,12 @@ public class Order {
 		this.orderID = orderID;
 	}
 
-	public String getClientID() {
-		return clientID;
+	public String getUserID() {
+		return userID;
 	}
 
-	public void setClientID(String clientID) {
-		this.clientID = clientID;
+	public void setUserID(String userID) {
+		this.userID = userID;
 	}
 
 	public String getProductID() {
