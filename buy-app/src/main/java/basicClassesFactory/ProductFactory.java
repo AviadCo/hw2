@@ -14,7 +14,7 @@ public class ProductFactory implements IStringableFactory<Product> {
 		return s.thenApply(strElement -> {
 			String[] elementString = strElement.split(PRODUCT_SPLITER);
 			
-			return new Product(elementString[0], Integer.valueOf(elementString[1]));
+			return new Product(elementString[0], Long.valueOf(elementString[1]));
 		});
 	}
 

@@ -12,16 +12,16 @@ import databaseInterfaces.IDatabaseElement;
 public class Product implements IDatabaseElement<String, Product> {
 
 	String id;
-	Integer price;
+	Long price;
 	
-	public Product (String id, Integer price) {
+	public Product (String id, Long price) {
 		this.id = id;
 		this.price = price;
 	}
 	
 	public Product (String id, String price) {
 		this.id = id;
-		this.price = Integer.valueOf(price);
+		this.price = Long.valueOf(price);
 	}
 	
 	public String getId() {
@@ -32,11 +32,11 @@ public class Product implements IDatabaseElement<String, Product> {
 		this.id = id;
 	}
 
-	public Integer getPrice() {
+	public Long getPrice() {
 		return price;
 	}
 
-	public void setPrice(Integer price) {
+	public void setPrice(Long price) {
 		this.price = price;
 	}
 

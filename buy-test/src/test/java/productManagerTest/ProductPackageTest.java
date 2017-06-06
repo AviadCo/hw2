@@ -34,9 +34,8 @@ public class ProductPackageTest {
 		    if (fileName.endsWith("xml"))
 		      bpi.setupXml(fileContents);
 		    else {
-		    	//TODO add Json tests
-		      //assert fileName.endsWith("json");
-		      //bpi.setupJson(fileContents);
+		      assert fileName.endsWith("json");
+		      bpi.setupJson(fileContents);
 		    }
 		    return injector;
 		  }

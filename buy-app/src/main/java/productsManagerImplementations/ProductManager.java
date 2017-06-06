@@ -182,6 +182,7 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 	@Override
 	public CompletableFuture<Void> setupJson(String jsonData) {
 		return initializeDatabase(ProductsParserJson.createListOfProducts(jsonData), ProductsParserJson.createListOfOrders(jsonData));
+
 	}
 
 	@Override
