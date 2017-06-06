@@ -172,31 +172,16 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 	
 	@Override
 	public CompletableFuture<Void> setupXml(String xmlData) {
-		List<Product> products;
-		List<DatabaseElement> allParsedOrders;
-		
 		try {
-			products = ProductsParserXml.createListOfProducts(xmlData);
+			return initializeDatabase(ProductsParserXml.createListOfProducts(xmlData), ProductsParserXml.createListOfOrders(xmlData));
 		} catch (Exception e) {
-			e.printStackTrace();
-			
 			throw new RuntimeException();
 		}
-		
-		try {
-			allParsedOrders = ProductsParserXml.createListOfOrders(xmlData);
-		} catch (Exception e) {
-			e.printStackTrace();
-			
-			throw new RuntimeException();
-		}
-		
-		return initializeDatabase(products, allParsedOrders);
 	}
 
 	@Override
 	public CompletableFuture<Void> setupJson(String jsonData) {
-		return null;
+		return initializeDatabase(ProductsParserJson.createListOfProducts(jsonData), ProductsParserJson.createListOfOrders(jsonData));
 	}
 
 	@Override
