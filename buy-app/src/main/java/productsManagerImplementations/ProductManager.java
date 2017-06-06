@@ -438,11 +438,10 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 		});
 	}
 
-	@Override
-	public CompletableFuture<OptionalDouble> getCancelRatioForUser(String userId) {
+	private CompletableFuture<OptionalDouble> getRatioForUser(String userId, String orderType) {
 		return ordersByUsersIDDatabase.findElementByID(userId).thenApply(order -> {			
 			if (order.isPresent()) {
-				Integer canceled = 0;
+				Integer counter = 0;
 				
 				Map<String, List<Order>> operationsPerOrderID = 
 						order.get()
@@ -451,41 +450,30 @@ public class ProductManager implements BuyProductInitializer, BuyProductReader {
 						.collect(Collectors.groupingBy(Order::getOrderID));
 				
 				for (List<Order> orders : operationsPerOrderID.values()) {
-					if (orders.get(orders.size() - 1).getType().equals(Order.CANCEL_ORDER_TYPE)) {
-						++canceled;
+					if ((orderType.equals(Order.MODIFY_ORDER_TYPE)) && (orders.size() > 1)) {
+						/* Modified ratio */
+						++counter;
+					} else if (orders.get(orders.size() - 1).getType().equals(orderType)) {
+						/* Canceled ratio */
+						++counter;
 					}
 				}
 				
-				return OptionalDouble.of((canceled == 0) ? 0 : (double) operationsPerOrderID.size() / canceled);
+				return OptionalDouble.of((operationsPerOrderID.size() == 0) ? 0 : counter / (double) operationsPerOrderID.size());
 			}
 			
 			return OptionalDouble.empty();
 		});
 	}
+	
+	@Override
+	public CompletableFuture<OptionalDouble> getCancelRatioForUser(String userId) {
+		return getRatioForUser(userId, Order.CANCEL_ORDER_TYPE);
+	}
 
 	@Override
 	public CompletableFuture<OptionalDouble> getModifyRatioForUser(String userId) {
-		return ordersByUsersIDDatabase.findElementByID(userId).thenApply(order -> {			
-			if (order.isPresent()) {
-				Integer modified = 0;
-				
-				Map<String, List<Order>> operationsPerOrderID = 
-						order.get()
-						.getOrdersList()
-						.stream()
-						.collect(Collectors.groupingBy(Order::getOrderID));
-				
-				for (List<Order> orders : operationsPerOrderID.values()) {
-					if (orders.size() > 1) {
-						++modified;
-					}
-				}
-				
-				return OptionalDouble.of((operationsPerOrderID.size() == 0) ? 0 : (double) modified / operationsPerOrderID.size());
-			}
-			
-			return OptionalDouble.empty();
-		});
+		return getRatioForUser(userId, Order.MODIFY_ORDER_TYPE);
 	}
 
 	@Override

@@ -24,7 +24,7 @@ import il.ac.technion.cs.sd.buy.test.BuyProductModule;
 
 public class ProductPackageTest {
 	
-	@Rule public Timeout globalTimeout = Timeout.seconds(20);
+	@Rule public Timeout globalTimeout = Timeout.seconds(30);
 
 	  private static Injector setupAndGetInjector(String fileName) throws FileNotFoundException {
 		    String fileContents =
