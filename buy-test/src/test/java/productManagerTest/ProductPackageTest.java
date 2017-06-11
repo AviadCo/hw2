@@ -143,7 +143,7 @@ public class ProductPackageTest {
 		    assertEquals(Long.valueOf(5 * 500), reader.getTotalAmountSpentByUser("4").get());
 		    assertEquals(Long.valueOf(50 * 10 + 30 * 10 + 100 * 20), reader.getTotalAmountSpentByUser("5").get());
 	  }
-	  
+	  	  
 	  @Test
 	  public void getUsersAndOrderByProductsTest() throws Exception {
 		    Injector injector = setupAndGetInjector("getUsersAndOrderByProducts.xml");
@@ -196,6 +196,65 @@ public class ProductPackageTest {
 			BuyProductReader reader = injector.getInstance(BuyProductReader.class);
 						
 			/* getItemsPurchasedByUsers checks */
+		    assertEquals(new HashMap<String, Long>(), reader.getItemsPurchasedByUsers("Bamba").get());
+		    
+		    Map<String, Long> mapBisly = new HashMap<String, Long>();
+		    mapBisly.put("2", (long) 6);
+		    mapBisly.put("5", (long) 50 + 30);
+		    assertEquals(mapBisly, reader.getItemsPurchasedByUsers("Bisly").get());
+		    
+		    Map<String, Long> mapKrembo = new HashMap<String, Long>();
+		    mapKrembo.put("5", (long) 100);
+		    assertEquals(mapKrembo, reader.getItemsPurchasedByUsers("Krembo").get());
+		    
+		    Map<String, Long> mapCola = new HashMap<String, Long>();
+		    mapCola.put("4", (long) 5);
+		    assertEquals(mapCola, reader.getItemsPurchasedByUsers("Cola").get());
+		    
+		    assertEquals(new HashMap<String, Long>(), reader.getItemsPurchasedByUsers("NotExists").get());
+		
+			/* getAllItemsPurchased checks */
+		    assertEquals(new HashMap<String, Long>(), reader.getAllItemsPurchased("1").get());
+		    
+		    Map<String, Long> mapUser2 = new HashMap<String, Long>();
+		    mapUser2.put("Bisly", (long) 6);
+		    assertEquals(mapUser2, reader.getAllItemsPurchased("2").get());
+		    
+		    assertEquals(new HashMap<String, Long>(), reader.getAllItemsPurchased("3").get());
+		    
+		    Map<String, Long> mapUser4 = new HashMap<String, Long>();
+		    mapUser4.put("Cola", (long) 5);
+		    assertEquals(mapUser4, reader.getAllItemsPurchased("4").get());
+		    
+		    Map<String, Long> mapUser5 = new HashMap<String, Long>();
+		    mapUser5.put("Bisly", (long) 50  + 30);
+		    mapUser5.put("Krembo", (long) 100);
+		    assertEquals(mapUser5, reader.getAllItemsPurchased("5").get());
+		    
+		    assertEquals(new HashMap<String, Long>(), reader.getAllItemsPurchased("NotExists").get());
+	  }
+	  
+	  @Test
+	  public void bigTest() throws Exception {
+		    Injector injector = setupAndGetInjector("big_test.json");
+		
+			BuyProductReader reader = injector.getInstance(BuyProductReader.class);
+						
+			/* getUsersThatPurchased checks */
+		    assertEquals(Arrays.asList(), reader.getUsersThatPurchased("Bamba").get());
+		    assertEquals(Arrays.asList("2", "5"), reader.getUsersThatPurchased("Bisly").get());
+		    assertEquals(Arrays.asList("5"), reader.getUsersThatPurchased("Krembo").get());
+		    assertEquals(Arrays.asList("4"), reader.getUsersThatPurchased("Cola").get());
+		    assertEquals(Arrays.asList(), reader.getUsersThatPurchased("NotExists").get());
+		
+			/* getOrderIdsThatPurchased checks */
+		    assertEquals(Arrays.asList("ModifiedAndCanceled"), reader.getOrderIdsThatPurchased("Bamba").get());
+		    assertEquals(Arrays.asList("ModifiedAndCanceledAndRedefined", "OnlyModified", "RedefinedAndModifiedTwice"),
+		    			 reader.getOrderIdsThatPurchased("Bisly").get());
+		    assertEquals(Arrays.asList("MultipleModification"), reader.getOrderIdsThatPurchased("Krembo").get());
+		    assertEquals(Arrays.asList("OnlyCanceled", "RegularOrder"), reader.getOrderIdsThatPurchased("Cola").get());
+		    assertEquals(Arrays.asList(), reader.getOrderIdsThatPurchased("NotExists").get());
+		    
 		    assertEquals(new HashMap<String, Long>(), reader.getItemsPurchasedByUsers("Bamba").get());
 		    
 		    Map<String, Long> mapBisly = new HashMap<String, Long>();
