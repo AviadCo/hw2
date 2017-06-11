@@ -27,7 +27,6 @@ public class BuyProductModule extends AbstractModule {
 
 	@Override
 	protected void configure() {
-		  bind(FutureLineStorageFactory.class).to(MapBasedStorageFactory.class); //TODO remember to remove this bind
 		  bind(BuyProductInitializer.class).to(ProductManager.class);
 		  bind(BuyProductReader.class).to(ProductManager.class);
 	}

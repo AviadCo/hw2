@@ -4,6 +4,8 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import il.ac.technion.cs.sd.buy.app.BuyProductInitializer;
 import il.ac.technion.cs.sd.buy.app.BuyProductReader;
+import il.ac.technion.cs.sd.buy.ext.LineStorageModule;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -23,8 +25,7 @@ public class ExampleTest {
   private static Injector setupAndGetInjector(String fileName) throws FileNotFoundException {
     String fileContents =
         new Scanner(new File(ExampleTest.class.getResource(fileName).getFile())).useDelimiter("\\Z").next();
-    //TODO remember to remove comment
-    Injector injector = Guice.createInjector(new BuyProductModule());//, new LineStorageModule());
+    Injector injector = Guice.createInjector(new BuyProductModule(), new LineStorageModule());
     BuyProductInitializer bpi = injector.getInstance(BuyProductInitializer.class);
     if (fileName.endsWith("xml"))
       bpi.setupXml(fileContents);
@@ -48,7 +49,6 @@ public class ExampleTest {
     Injector injector = setupAndGetInjector("small.json");
 
     BuyProductReader reader = injector.getInstance(BuyProductReader.class);
-    //TODO i changed from 1000 to 1000
     assertEquals(2 * 10000 + 5 * 100 + 100 * 1, reader.getTotalAmountSpentByUser("1").get().intValue());
   }
 
